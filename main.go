@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const checkDurationTime = 10
+const checkDurationTime = 60
 
 type Service struct {
 	metrics appMetrics
@@ -20,7 +20,10 @@ type Service struct {
 }
 
 type appMetrics struct {
-	siteStatus *prometheus.GaugeVec
+	siteStatus   *prometheus.GaugeVec
+	sites        prometheus.Counter
+	offlineSites prometheus.Gauge
+	errorCounter *prometheus.GaugeVec
 }
 
 type appConfig struct {
@@ -33,6 +36,7 @@ func (s *Service) readConfig() {
 		log.Fatalf("Some error occured. Err: %s", err)
 	}
 	s.config.urls = strings.Split(os.Getenv("URLS"), ",")
+	s.metrics.sites.Add(float64(len(s.config.urls)))
 }
 
 func (s *Service) initMetrics() {
@@ -40,33 +44,62 @@ func (s *Service) initMetrics() {
 		Name: "site_status",
 		Help: "The summary of monitored sites and their response-codes",
 	}, []string{"url", "httpcode", "message"})
-	err := prometheus.Register(s.metrics.siteStatus)
-	if err != nil && err.Error() != "duplicate metrics collector registration attempted" {
+	if err := prometheus.Register(s.metrics.siteStatus); err != nil && err.Error() != "duplicate metrics collector for site_status registration attempted" {
 		log.Fatal(err)
 	}
 
+	s.metrics.sites = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "sites",
+		Help: "The number of monitored sites",
+	})
+	if err := prometheus.Register(s.metrics.sites); err != nil && err.Error() != "duplicate metrics collector for sites registration attempted" {
+		log.Fatal(err)
+	}
+
+	s.metrics.offlineSites = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "offline_sites",
+		Help: "The number of offline sites",
+	})
+	if err := prometheus.Register(s.metrics.offlineSites); err != nil && err.Error() != "duplicate metrics collector for offline sites registration attempted" {
+		log.Fatal(err)
+	}
+
+	s.metrics.errorCounter = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "error_sites",
+		Help: "How long the sites are offline",
+	}, []string{"url"})
+	if err := prometheus.Register(s.metrics.errorCounter); err != nil && err.Error() != "duplicate metrics collector for error counter for offline sites registration attempted" {
+		log.Fatal(err)
+	}
 }
 
 func (s *Service) recordMetrics() {
 	go func() {
 		for {
 			s.metrics.siteStatus.Reset()
+			s.metrics.offlineSites.Set(0)
 
 			for _, url := range s.config.urls {
 				req, err := http.NewRequest(http.MethodGet, url, nil)
 				if err != nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Inc()
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Set(0)
+					s.metrics.offlineSites.Inc()
+					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					continue
 				}
 
 				res, err := http.DefaultClient.Do(req)
 				if err != nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Inc()
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Set(0)
+					s.metrics.offlineSites.Inc()
+					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					continue
 				}
 
 				if res == nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": "response is nil"}).Inc()
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": "response is nil"}).Set(0)
+					s.metrics.offlineSites.Inc()
+					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					continue
 				}
 
@@ -74,7 +107,15 @@ func (s *Service) recordMetrics() {
 					"url":      url,
 					"httpcode": fmt.Sprintf("%d", res.StatusCode),
 					"message":  res.Status,
-				}).Inc()
+				}).Set(float64(res.StatusCode))
+
+				if res.StatusCode < 200 || res.StatusCode >= 300 {
+					s.metrics.offlineSites.Inc()
+					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
+				} else {
+					// no more errors - site es online again!
+					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Set(0)
+				}
 			}
 			time.Sleep(checkDurationTime * time.Second)
 		}
@@ -84,12 +125,12 @@ func (s *Service) recordMetrics() {
 func newService() *Service {
 	service := &Service{}
 	service.initMetrics()
+	service.readConfig()
 	return service
 }
 
 func main() {
 	service := newService()
-	service.readConfig()
 	service.recordMetrics()
 
 	http.Handle("/metrics", promhttp.Handler())
