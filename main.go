@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const checkDurationTime = 60
+const checkDurationTime = 10
 
 type Service struct {
 	metrics appMetrics
@@ -20,7 +20,7 @@ type Service struct {
 }
 
 type appMetrics struct {
-	siteStatus *prometheus.SummaryVec
+	siteStatus *prometheus.GaugeVec
 }
 
 type appConfig struct {
@@ -28,7 +28,7 @@ type appConfig struct {
 }
 
 func (s *Service) readConfig() {
-	err := godotenv.Load(".env")
+	err := godotenv.Load("config/.env")
 	if err != nil {
 		log.Fatalf("Some error occured. Err: %s", err)
 	}
@@ -36,7 +36,7 @@ func (s *Service) readConfig() {
 }
 
 func (s *Service) initMetrics() {
-	s.metrics.siteStatus = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	s.metrics.siteStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "site_status",
 		Help: "The summary of monitored sites and their response-codes",
 	}, []string{"url", "httpcode", "message"})
@@ -50,21 +50,23 @@ func (s *Service) initMetrics() {
 func (s *Service) recordMetrics() {
 	go func() {
 		for {
+			s.metrics.siteStatus.Reset()
+
 			for _, url := range s.config.urls {
 				req, err := http.NewRequest(http.MethodGet, url, nil)
 				if err != nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Observe(1)
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Inc()
 					continue
 				}
 
 				res, err := http.DefaultClient.Do(req)
 				if err != nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Observe(1)
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Inc()
 					continue
 				}
 
 				if res == nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": "response is nil"}).Observe(1)
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": "response is nil"}).Inc()
 					continue
 				}
 
@@ -72,7 +74,7 @@ func (s *Service) recordMetrics() {
 					"url":      url,
 					"httpcode": fmt.Sprintf("%d", res.StatusCode),
 					"message":  res.Status,
-				}).Observe(1)
+				}).Inc()
 			}
 			time.Sleep(checkDurationTime * time.Second)
 		}
