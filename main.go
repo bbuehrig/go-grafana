@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -12,7 +11,7 @@ import (
 	"time"
 )
 
-const checkDurationTime = 60
+const checkDurationTime = 51
 
 type Service struct {
 	metrics appMetrics
@@ -43,7 +42,7 @@ func (s *Service) initMetrics() {
 	s.metrics.siteStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "site_status",
 		Help: "The summary of monitored sites and their response-codes",
-	}, []string{"url", "httpcode", "message"})
+	}, []string{"url"})
 	if err := prometheus.Register(s.metrics.siteStatus); err != nil && err.Error() != "duplicate metrics collector for site_status registration attempted" {
 		log.Fatal(err)
 	}
@@ -76,13 +75,12 @@ func (s *Service) initMetrics() {
 func (s *Service) recordMetrics() {
 	go func() {
 		for {
-			s.metrics.siteStatus.Reset()
 			s.metrics.offlineSites.Set(0)
 
 			for _, url := range s.config.urls {
 				req, err := http.NewRequest(http.MethodGet, url, nil)
 				if err != nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Set(0)
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url}).Set(0)
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					continue
@@ -90,24 +88,22 @@ func (s *Service) recordMetrics() {
 
 				res, err := http.DefaultClient.Do(req)
 				if err != nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": err.Error()}).Set(0)
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url}).Set(0)
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					continue
 				}
+
+				s.metrics.siteStatus.Delete(prometheus.Labels{"url": url})
 
 				if res == nil {
-					s.metrics.siteStatus.With(prometheus.Labels{"url": url, "httpcode": "0", "message": "response is nil"}).Set(0)
+					s.metrics.siteStatus.With(prometheus.Labels{"url": url}).Set(0)
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					continue
 				}
 
-				s.metrics.siteStatus.With(prometheus.Labels{
-					"url":      url,
-					"httpcode": fmt.Sprintf("%d", res.StatusCode),
-					"message":  res.Status,
-				}).Set(float64(res.StatusCode))
+				s.metrics.siteStatus.With(prometheus.Labels{"url": url}).Set(float64(res.StatusCode))
 
 				if res.StatusCode < 200 || res.StatusCode >= 300 {
 					s.metrics.offlineSites.Inc()
