@@ -30,3 +30,50 @@ SMTP_FROM=monitor@example.com
 - Sends email alerts when a site goes offline or recovers
 - Logs alert and recovery events
 - Graceful shutdown on SIGINT/SIGTERM
+
+## Docker Usage
+
+A multi-stage `Dockerfile` is provided for building and running the service in a containerized environment.
+
+### Build and Run with Docker
+
+1. Build the Docker image:
+   ```sh
+   docker build -t go-grafana-monitor:latest .
+   ```
+2. Run the container (mount your config as needed):
+   ```sh
+   docker run -d -p 2112:2112 -v $(pwd)/config/.env:/app/config/.env go-grafana-monitor:latest
+   ```
+
+- The service will be available at `http://localhost:2112/metrics`.
+- Make sure to provide the required `config/.env` file (see Configuration section).
+
+## Dagger Pipeline (CI)
+
+This project includes a Dagger-based pipeline for building and exporting Docker images for multiple architectures (amd64 and arm64) locally.
+
+- The pipeline is defined in [`ci/main.go`](ci/main.go).
+- It uses the [dagger.io/dagger](https://dagger.io/) Go SDK.
+
+### Running the Dagger Pipeline
+
+1. Install Dagger Go SDK:
+   ```sh
+   go get dagger.io/dagger
+   ```
+2. Run the pipeline:
+   ```sh
+   go run ci/main.go
+   ```
+
+This will build the Docker image for both `amd64` and `arm64` architectures using the local `Dockerfile` and export them locally as:
+- `go-grafana-monitor:amd64`
+- `go-grafana-monitor:arm64`
+
+You can then load and run the images with Docker (on the appropriate architecture), for example:
+```sh
+docker run -d -p 2112:2112 go-grafana-monitor:amd64
+# or
+docker run -d -p 2112:2112 go-grafana-monitor:arm64
+```
