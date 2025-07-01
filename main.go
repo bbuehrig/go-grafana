@@ -94,6 +94,8 @@ func (s *Service) recordMetrics() {
 					continue
 				}
 
+				defer res.Body.Close()
+
 				s.metrics.siteStatus.Delete(prometheus.Labels{"url": url})
 
 				if res == nil {
