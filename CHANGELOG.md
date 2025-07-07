@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 - Add example `.env` file for easier configuration.
+- Use github.com/jordan-wright/email for robust SMTP with STARTTLS support (fixes EOF errors with modern SMTP servers, improves email reliability).
 
 ## [0.2.0] - 2024-06-10
 ### Added
