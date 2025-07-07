@@ -19,4 +19,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial release: Go-Grafana Webpage Monitor with Prometheus metrics and email alerting.
 - Dockerfile for containerized builds.
-- Basic documentation in README. 
+- Basic documentation in README.
+
+## [0.3.0] - 2024-06-10
+### Fixed
+- Prevent duplicate email notifications for site down/recovery events by synchronizing access to offlineMap with a mutex. Now, only one email is sent per state change, even with parallel checks. 

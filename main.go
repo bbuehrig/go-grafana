@@ -5,18 +5,23 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Service struct {
-	metrics appMetrics
-	config  appConfig
+	metrics    appMetrics
+	config     appConfig
+	offlineMap map[string]bool
+	mu         sync.Mutex
 }
 
 func newService() *Service {
-	service := &Service{}
+	service := &Service{
+		offlineMap: make(map[string]bool),
+	}
 	service.initMetrics()
 	service.readConfig()
 	return service
