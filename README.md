@@ -100,4 +100,11 @@ See [CHANGELOG.md](CHANGELOG.md) for a detailed list of recent changes and impro
 
 ## Testability
 
-The email sending logic is abstracted via an `EmailSender` interface. This allows for unit testing of alert and recovery logic without sending real emails. See `email_test.go` for examples of how the alert subject and body are verified using a mock sender.
+The project includes comprehensive unit tests for configuration loading, metrics initialization, monitoring and alerting logic, and service initialization, in addition to email subject and sending logic. Tests are located in:
+- `email_test.go`
+- `metrics_test.go`
+- `config_test.go`
+- `monitor_test.go`
+- `main_test.go`
+
+The email sending logic is abstracted via an `EmailSender` interface, allowing for unit testing of alert and recovery logic without sending real emails. See the test files for examples of how the alert subject, body, and monitoring transitions are verified using mocks and real Prometheus metrics.

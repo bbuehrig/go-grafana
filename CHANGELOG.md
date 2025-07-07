@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - Example `.env` file for easier configuration.
 - Email subject now includes the website URL, error code/reason, and a status emoji (🚨 for down, ✅ for up) for clearer alerts and recoveries.
 - Email sending logic is now abstracted via an `EmailSender` interface for testability, with unit tests for alert subject/body logic using a mock sender.
+- Comprehensive unit tests for configuration loading, metrics initialization, monitoring and alerting logic, and service initialization.
 ### Changed
 - Use github.com/jordan-wright/email for robust SMTP with STARTTLS support (fixes EOF errors with modern SMTP servers, improves email reliability).
 
