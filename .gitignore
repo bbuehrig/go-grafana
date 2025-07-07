@@ -24,7 +24,7 @@ go.work
 .env
 
 # Ignore locally created Docker images (by Dagger pipeline)
-go-grafana-monitor:amd64
-go-grafana-monitor:arm64
+go-grafana-monitor-amd64
+go-grafana-monitor-arm64
 
 .idea/*
