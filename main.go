@@ -128,6 +128,7 @@ func (s *Service) recordMetrics(ctx context.Context) {
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					if !offlineMap[url] {
+						log.Printf("Sending email: subject='%s' to='%s' (reason: unreachable)", "Site Down", s.config.smtpTo)
 						sendEmail(s.config, "Site Down", fmt.Sprintf("%s is unreachable: %v", url, err))
 						log.Printf("Alert sent: %s is unreachable", url)
 						offlineMap[url] = true
@@ -140,6 +141,7 @@ func (s *Service) recordMetrics(ctx context.Context) {
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					if !offlineMap[url] {
+						log.Printf("Sending email: subject='%s' to='%s' (reason: unreachable)", "Site Down", s.config.smtpTo)
 						sendEmail(s.config, "Site Down", fmt.Sprintf("%s is unreachable: %v", url, err))
 						log.Printf("Alert sent: %s is unreachable", url)
 						offlineMap[url] = true
@@ -153,6 +155,7 @@ func (s *Service) recordMetrics(ctx context.Context) {
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					if !offlineMap[url] {
+						log.Printf("Sending email: subject='%s' to='%s' (reason: nil response)", "Site Down", s.config.smtpTo)
 						sendEmail(s.config, "Site Down", fmt.Sprintf("%s returned nil response", url))
 						log.Printf("Alert sent: %s returned nil response", url)
 						offlineMap[url] = true
@@ -164,6 +167,7 @@ func (s *Service) recordMetrics(ctx context.Context) {
 					s.metrics.offlineSites.Inc()
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Inc()
 					if !offlineMap[url] {
+						log.Printf("Sending email: subject='%s' to='%s' (reason: status %d)", "Site Down", s.config.smtpTo, res.StatusCode)
 						sendEmail(s.config, "Site Down", fmt.Sprintf("%s returned status %d", url, res.StatusCode))
 						log.Printf("Alert sent: %s returned status %d", url, res.StatusCode)
 						offlineMap[url] = true
@@ -171,6 +175,7 @@ func (s *Service) recordMetrics(ctx context.Context) {
 				} else {
 					s.metrics.errorCounter.With(prometheus.Labels{"url": url}).Set(0)
 					if offlineMap[url] {
+						log.Printf("Sending email: subject='%s' to='%s' (reason: recovery)", "Site Recovered", s.config.smtpTo)
 						sendEmail(s.config, "Site Recovered", fmt.Sprintf("%s is back online", url))
 						log.Printf("Recovery alert sent: %s is back online", url)
 						offlineMap[url] = false
