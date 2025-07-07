@@ -12,10 +12,11 @@ import (
 )
 
 type Service struct {
-	metrics    appMetrics
-	config     appConfig
-	offlineMap map[string]bool
-	mu         sync.Mutex
+	metrics     appMetrics
+	config      appConfig
+	offlineMap  map[string]bool
+	mu          sync.Mutex
+	emailSender EmailSender
 }
 
 func newService() *Service {
@@ -24,6 +25,7 @@ func newService() *Service {
 	}
 	service.initMetrics()
 	service.readConfig()
+	service.emailSender = &SMTPSender{cfg: service.config}
 	return service
 }
 
