@@ -3,14 +3,22 @@ package main
 import (
 	"fmt"
 	"log"
+
 	"net/smtp"
+
+	"github.com/jordan-wright/email"
 )
 
 func sendEmail(cfg appConfig, subject, body string) error {
+	e := email.NewEmail()
+	e.From = cfg.smtpFrom
+	e.To = []string{cfg.smtpTo}
+	e.Subject = subject
+	e.Text = []byte(body)
+
 	auth := smtp.PlainAuth("", cfg.smtpUser, cfg.smtpPass, cfg.smtpServer)
 	addr := fmt.Sprintf("%s:%s", cfg.smtpServer, cfg.smtpPort)
-	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", cfg.smtpTo, subject, body))
-	return smtp.SendMail(addr, auth, cfg.smtpFrom, []string{cfg.smtpTo}, msg)
+	return e.Send(addr, auth)
 }
 
 func (s *Service) sendSiteDownAlert(url, reason string) {
