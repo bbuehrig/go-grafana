@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -53,4 +54,23 @@ func (s *Service) readConfig() {
 	log.Printf("  SMTP user: %s", s.config.smtpUser)
 	log.Printf("  SMTP to: %s", s.config.smtpTo)
 	log.Printf("  SMTP from: %s", s.config.smtpFrom)
+}
+
+func (s *Service) monitorSites() {
+	for {
+		start := time.Now()
+		var wg sync.WaitGroup
+		for _, url := range s.config.urls {
+			wg.Add(1)
+			go func(url string) {
+				defer wg.Done()
+				s.checkSiteStatus(url, client, offlineMap)
+			}(url)
+		}
+		wg.Wait()
+		elapsed := time.Since(start)
+		if elapsed < s.config.checkInterval {
+			time.Sleep(s.config.checkInterval - elapsed)
+		}
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,6 +17,7 @@ func (s *Service) recordMetrics(ctx context.Context) {
 		client := &http.Client{Timeout: 10 * time.Second}
 
 		for {
+			start := time.Now()
 			select {
 			case <-ctx.Done():
 				log.Println("Shutting down monitoring goroutine...")
@@ -25,11 +27,20 @@ func (s *Service) recordMetrics(ctx context.Context) {
 
 			s.metrics.offlineSites.Set(0)
 
+			var wg sync.WaitGroup
 			for _, url := range s.config.urls {
-				s.checkSiteStatus(url, client, offlineMap)
+				wg.Add(1)
+				go func(url string) {
+					defer wg.Done()
+					s.checkSiteStatus(url, client, offlineMap)
+				}(url)
 			}
+			wg.Wait()
 
-			time.Sleep(s.config.checkInterval)
+			elapsed := time.Since(start)
+			if elapsed < s.config.checkInterval {
+				time.Sleep(s.config.checkInterval - elapsed)
+			}
 		}
 	}()
 }
