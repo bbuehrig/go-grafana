@@ -22,18 +22,20 @@ func sendEmail(cfg appConfig, subject, body string) error {
 }
 
 func (s *Service) sendSiteDownAlert(url, reason string) {
-	log.Printf("Sending email: subject='%s' to='%s' (reason: %s)", "Site Down", s.config.smtpTo, reason)
-	if err := sendEmail(s.config, "Site Down", fmt.Sprintf("%s: %s", url, reason)); err != nil {
-		log.Printf("Failed to send email: subject='%s' to='%s': %v", "Site Down", s.config.smtpTo, err)
+	subject := fmt.Sprintf("[🚨 DOWN] %s (%s)", url, reason)
+	log.Printf("Sending email: subject='%s' to='%s' (reason: %s)", subject, s.config.smtpTo, reason)
+	if err := sendEmail(s.config, subject, fmt.Sprintf("%s: %s", url, reason)); err != nil {
+		log.Printf("Failed to send email: subject='%s' to='%s': %v", subject, s.config.smtpTo, err)
 	} else {
 		log.Printf("Alert sent: %s - %s", url, reason)
 	}
 }
 
 func (s *Service) sendSiteRecoveryAlert(url string) {
-	log.Printf("Sending email: subject='%s' to='%s' (reason: recovery)", "Site Recovered", s.config.smtpTo)
-	if err := sendEmail(s.config, "Site Recovered", fmt.Sprintf("%s is back online", url)); err != nil {
-		log.Printf("Failed to send email: subject='%s' to='%s': %v", "Site Recovered", s.config.smtpTo, err)
+	subject := fmt.Sprintf("[✅ UP] %s is back online", url)
+	log.Printf("Sending email: subject='%s' to='%s' (reason: recovery)", subject, s.config.smtpTo)
+	if err := sendEmail(s.config, subject, fmt.Sprintf("%s is back online", url)); err != nil {
+		log.Printf("Failed to send email: subject='%s' to='%s': %v", subject, s.config.smtpTo, err)
 	} else {
 		log.Printf("Recovery alert sent: %s is back online", url)
 	}
