@@ -28,8 +28,23 @@ SMTP_FROM=monitor@example.com
 - Monitors HTTP status of configured URLs
 - Exposes Prometheus metrics at `/metrics`
 - Sends email alerts when a site goes offline or recovers
+- Email alert subject includes the website URL, error code/reason, and a status emoji (🚨 for down, ✅ for up)
 - Logs alert and recovery events
 - Graceful shutdown on SIGINT/SIGTERM
+
+### Email Alert Subject Format
+
+When a site goes down, the email subject will look like:
+
+```
+[🚨 DOWN] https://example.com (returned status 500)
+```
+
+When a site recovers, the subject will look like:
+
+```
+[✅ UP] https://example.com is back online
+```
 
 ## Docker Usage
 
@@ -55,12 +70,13 @@ This project includes a Dagger-based pipeline for building and exporting Docker 
 
 - The pipeline is defined in [`ci/main.go`](ci/main.go).
 - It uses the [dagger.io/dagger](https://dagger.io/) Go SDK.
+- **Note:** The pipeline is pinned to Dagger v0.17.2 for stability due to OpenTelemetry compatibility issues with later versions.
 
 ### Running the Dagger Pipeline
 
 1. Install Dagger Go SDK:
    ```sh
-   go get dagger.io/dagger
+   go get dagger.io/dagger@v0.17.2
    ```
 2. Run the pipeline:
    ```sh
@@ -77,3 +93,7 @@ docker run -d -p 2112:2112 go-grafana-monitor:amd64
 # or
 docker run -d -p 2112:2112 go-grafana-monitor:arm64
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of recent changes and improvements.
