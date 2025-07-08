@@ -73,13 +73,13 @@ This project includes a Dagger-based pipeline for building and exporting Docker 
 
 - The pipeline is defined in [`ci/main.go`](ci/main.go).
 - It uses the [dagger.io/dagger](https://dagger.io/) Go SDK.
-- **Note:** The pipeline is pinned to Dagger v0.17.2 for stability due to OpenTelemetry compatibility issues with later versions.
+- **Note:** The pipeline now uses Dagger v0.18.12. If you encounter issues, see the changelog for version compatibility notes.
 
 ### Running the Dagger Pipeline
 
 1. Install Dagger Go SDK:
    ```sh
-   go get dagger.io/dagger@v0.17.2
+   go get dagger.io/dagger@v0.18.12
    ```
 2. Run the pipeline:
    ```sh
