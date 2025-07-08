@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Email sending logic is now abstracted via an `EmailSender` interface for testability, with unit tests for alert subject/body logic using a mock sender.
 - Comprehensive unit tests for configuration loading, metrics initialization, monitoring and alerting logic, and service initialization.
 - Configurable alert threshold: only send a DOWN alert after N consecutive failures (set via `ALERT_THRESHOLD`, default 2).
+- Basic integration test for the Dagger pipeline in `ci/main_test.go`. The pipeline logic was refactored into a testable function (`RunPipeline`).
 ### Changed
 - Use github.com/jordan-wright/email for robust SMTP with STARTTLS support (fixes EOF errors with modern SMTP servers, improves email reliability).
 

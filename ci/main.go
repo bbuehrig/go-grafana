@@ -9,14 +9,7 @@ import (
 	dagger "dagger.io/dagger"
 )
 
-func main() {
-	ctx := context.Background()
-	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
-	if err != nil {
-		panic(err)
-	}
-	defer client.Close()
-
+func RunPipeline(ctx context.Context, client *dagger.Client) error {
 	// Mount source code
 	src := client.Host().Directory(".")
 
@@ -38,7 +31,7 @@ func main() {
 		// Run tests before build
 		out, err := container.WithExec([]string{"go", "test", "-v", "./..."}).Stdout(ctx)
 		if err != nil {
-			panic(fmt.Sprintf("Tests failed for %s: %v\n%s", p.name, err, out))
+			return fmt.Errorf("Tests failed for %s: %v\n%s", p.name, err, out)
 		}
 		fmt.Printf("Tests passed for %s:\n%s\n", p.name, out)
 
@@ -51,8 +44,22 @@ func main() {
 
 		_, err = final.Export(ctx, imageTag)
 		if err != nil {
-			panic(fmt.Sprintf("Failed to export image for %s: %v", p.name, err))
+			return fmt.Errorf("Failed to export image for %s: %v", p.name, err)
 		}
 		fmt.Printf("Image for %s exported locally as %s\n", p.name, imageTag)
+	}
+	return nil
+}
+
+func main() {
+	ctx := context.Background()
+	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
+	if err != nil {
+		panic(err)
+	}
+	defer client.Close()
+
+	if err := RunPipeline(ctx, client); err != nil {
+		panic(err)
 	}
 }

@@ -97,6 +97,19 @@ docker run -d -p 2112:2112 go-grafana-monitor:amd64
 docker run -d -p 2112:2112 go-grafana-monitor:arm64
 ```
 
+### Testing the Dagger Pipeline
+
+A basic integration test for the Dagger pipeline is provided in [`ci/main_test.go`](ci/main_test.go`). This test attempts to run the pipeline using a real Dagger engine. **By default, the test is skipped.**
+
+To run the pipeline test, set the environment variable `CI_DAGGER_TEST=1`:
+
+```sh
+CI_DAGGER_TEST=1 go test ./ci
+```
+
+- The test requires a running Dagger engine and Docker available on your system.
+- The test will fail if the pipeline fails to build or export the images.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed list of recent changes and improvements.
