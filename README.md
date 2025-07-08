@@ -15,6 +15,7 @@ SMTP_USER=youruser@example.com
 SMTP_PASS=yourpassword
 SMTP_TO=alertrecipient@example.com
 SMTP_FROM=monitor@example.com
+ALERT_THRESHOLD=2
 ```
 
 - `URLS`: Comma-separated list of URLs to monitor
@@ -22,6 +23,7 @@ SMTP_FROM=monitor@example.com
 - `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: SMTP server details for sending email
 - `SMTP_TO`: Recipient email address
 - `SMTP_FROM`: Sender email address
+- `ALERT_THRESHOLD`: Number of consecutive failures before sending a DOWN alert (default: 2)
 
 ## Features
 
@@ -31,6 +33,7 @@ SMTP_FROM=monitor@example.com
 - Email alert subject includes the website URL, error code/reason, and a status emoji (🚨 for down, ✅ for up)
 - Logs alert and recovery events
 - Graceful shutdown on SIGINT/SIGTERM
+- Configurable alert threshold: only sends a DOWN alert after N consecutive failures (set via `ALERT_THRESHOLD`, default 2)
 
 ### Email Alert Subject Format
 

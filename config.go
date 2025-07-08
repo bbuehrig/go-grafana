@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -12,14 +13,15 @@ import (
 const defaultCheckDurationTime = 51
 
 type appConfig struct {
-	urls          []string
-	checkInterval time.Duration
-	smtpServer    string
-	smtpPort      string
-	smtpUser      string
-	smtpPass      string
-	smtpTo        string
-	smtpFrom      string
+	urls           []string
+	checkInterval  time.Duration
+	smtpServer     string
+	smtpPort       string
+	smtpUser       string
+	smtpPass       string
+	smtpTo         string
+	smtpFrom       string
+	alertThreshold int // Number of consecutive failures before alerting
 }
 
 func (s *Service) readConfig() {
@@ -44,6 +46,19 @@ func (s *Service) readConfig() {
 	s.config.smtpPass = os.Getenv("SMTP_PASS")
 	s.config.smtpTo = os.Getenv("SMTP_TO")
 	s.config.smtpFrom = os.Getenv("SMTP_FROM")
+	// Load alert threshold
+	thresh := os.Getenv("ALERT_THRESHOLD")
+	if thresh == "" {
+		s.config.alertThreshold = 2
+	} else {
+		var val int
+		_, err := fmt.Sscanf(thresh, "%d", &val)
+		if err != nil || val < 1 {
+			s.config.alertThreshold = 2
+		} else {
+			s.config.alertThreshold = val
+		}
+	}
 	s.metrics.sites.Add(float64(len(s.config.urls)))
 
 	log.Println("Loaded configuration:")
@@ -53,4 +68,5 @@ func (s *Service) readConfig() {
 	log.Printf("  SMTP user: %s", s.config.smtpUser)
 	log.Printf("  SMTP to: %s", s.config.smtpTo)
 	log.Printf("  SMTP from: %s", s.config.smtpFrom)
+	log.Printf("  Alert threshold: %d", s.config.alertThreshold)
 }

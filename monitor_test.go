@@ -46,8 +46,9 @@ func (m *mockEmailSender) Send(subject, body string) error {
 // Helper to create a Service with mocks
 func newTestService() *Service {
 	s := &Service{
-		offlineMap:  make(map[string]bool),
-		emailSender: &mockEmailSender{},
+		offlineMap:   make(map[string]bool),
+		failureCount: make(map[string]int),
+		emailSender:  &mockEmailSender{},
 	}
 	s.metrics.siteStatus = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "test_site_status", Help: ""}, []string{"url"})
 	s.metrics.offlineSites = prometheus.NewGauge(prometheus.GaugeOpts{Name: "test_offline_sites", Help: ""})
@@ -83,6 +84,47 @@ func TestCheckSiteStatus_Recovery(t *testing.T) {
 	me := s.emailSender.(*mockEmailSender)
 	if me.calls != 1 {
 		t.Errorf("expected 1 recovery alert, got %d", me.calls)
+	}
+}
+
+func TestCheckSiteStatus_Threshold(t *testing.T) {
+	s := newTestService()
+	s.config.alertThreshold = 3
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("fail")
+	})}
+	for i := 0; i < 2; i++ {
+		s.checkSiteStatus("https://fail.com", client)
+	}
+	me := s.emailSender.(*mockEmailSender)
+	if me.calls != 0 {
+		t.Errorf("expected no alert before threshold, got %d", me.calls)
+	}
+	s.checkSiteStatus("https://fail.com", client)
+	if me.calls != 1 {
+		t.Errorf("expected alert at threshold, got %d", me.calls)
+	}
+}
+
+func TestCheckSiteStatus_ThresholdResetOnRecovery(t *testing.T) {
+	s := newTestService()
+	s.config.alertThreshold = 2
+	failClient := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("fail")
+	})}
+	okClient := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+	})}
+	s.checkSiteStatus("https://fail.com", failClient)
+	s.checkSiteStatus("https://fail.com", failClient)
+	me := s.emailSender.(*mockEmailSender)
+	if me.calls != 1 {
+		t.Errorf("expected alert at threshold, got %d", me.calls)
+	}
+	// Now recover
+	s.checkSiteStatus("https://fail.com", okClient)
+	if s.failureCount["https://fail.com"] != 0 {
+		t.Errorf("expected failureCount reset on recovery, got %d", s.failureCount["https://fail.com"])
 	}
 }
 

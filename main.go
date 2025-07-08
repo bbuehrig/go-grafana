@@ -12,16 +12,18 @@ import (
 )
 
 type Service struct {
-	metrics     appMetrics
-	config      appConfig
-	offlineMap  map[string]bool
-	mu          sync.Mutex
-	emailSender EmailSender
+	metrics      appMetrics
+	config       appConfig
+	offlineMap   map[string]bool
+	failureCount map[string]int // Track consecutive failures
+	mu           sync.Mutex
+	emailSender  EmailSender
 }
 
 func newService() *Service {
 	service := &Service{
-		offlineMap: make(map[string]bool),
+		offlineMap:   make(map[string]bool),
+		failureCount: make(map[string]int),
 	}
 	service.initMetrics()
 	service.readConfig()

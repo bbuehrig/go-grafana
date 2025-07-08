@@ -87,12 +87,14 @@ func (s *Service) handleSiteError(url, reason string) {
 
 	s.mu.Lock()
 	alreadyOffline := s.offlineMap[url]
-	if !alreadyOffline {
+	s.failureCount[url]++
+	shouldAlert := !alreadyOffline && s.failureCount[url] >= s.config.alertThreshold
+	if shouldAlert {
 		s.offlineMap[url] = true
 	}
 	s.mu.Unlock()
 
-	if !alreadyOffline {
+	if shouldAlert {
 		s.sendSiteDownAlert(url, reason)
 	}
 }
@@ -103,6 +105,7 @@ func (s *Service) handleSiteRecovery(url string) {
 	if wasOffline {
 		s.offlineMap[url] = false
 	}
+	s.failureCount[url] = 0 // Reset failure count on recovery
 	s.mu.Unlock()
 
 	if wasOffline {

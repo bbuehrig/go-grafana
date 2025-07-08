@@ -23,14 +23,15 @@ func setupEnv(env map[string]string) func() {
 
 func TestReadConfigLoadsFields(t *testing.T) {
 	cleanup := setupEnv(map[string]string{
-		"URLS":           "https://a.com,https://b.com",
-		"CHECK_INTERVAL": "42s",
-		"SMTP_SERVER":    "smtp.example.com",
-		"SMTP_PORT":      "587",
-		"SMTP_USER":      "user",
-		"SMTP_PASS":      "pass",
-		"SMTP_TO":        "to@example.com",
-		"SMTP_FROM":      "from@example.com",
+		"URLS":            "https://a.com,https://b.com",
+		"CHECK_INTERVAL":  "42s",
+		"SMTP_SERVER":     "smtp.example.com",
+		"SMTP_PORT":       "587",
+		"SMTP_USER":       "user",
+		"SMTP_PASS":       "pass",
+		"SMTP_TO":         "to@example.com",
+		"SMTP_FROM":       "from@example.com",
+		"ALERT_THRESHOLD": "5",
 	})
 	defer cleanup()
 
@@ -62,6 +63,9 @@ func TestReadConfigLoadsFields(t *testing.T) {
 	if s.config.smtpFrom != "from@example.com" {
 		t.Errorf("smtpFrom not loaded")
 	}
+	if s.config.alertThreshold != 5 {
+		t.Errorf("alertThreshold not loaded: got %d", s.config.alertThreshold)
+	}
 }
 
 func TestReadConfigDefaultInterval(t *testing.T) {
@@ -78,5 +82,37 @@ func TestReadConfigDefaultInterval(t *testing.T) {
 	expected := defaultCheckDurationTime * time.Second
 	if s.config.checkInterval != expected {
 		t.Errorf("expected default interval %v, got %v", expected, s.config.checkInterval)
+	}
+}
+
+func TestReadConfigDefaultAlertThreshold(t *testing.T) {
+	cleanup := setupEnv(map[string]string{
+		"URLS":            "https://a.com",
+		"ALERT_THRESHOLD": "",
+	})
+	defer cleanup()
+
+	s := &Service{}
+	s.metrics.sites = prometheus.NewCounter(prometheus.CounterOpts{Name: "test_sites_default_thresh"})
+	s.readConfig()
+
+	if s.config.alertThreshold != 2 {
+		t.Errorf("expected default alertThreshold 2, got %d", s.config.alertThreshold)
+	}
+}
+
+func TestReadConfigInvalidAlertThreshold(t *testing.T) {
+	cleanup := setupEnv(map[string]string{
+		"URLS":            "https://a.com",
+		"ALERT_THRESHOLD": "notanumber",
+	})
+	defer cleanup()
+
+	s := &Service{}
+	s.metrics.sites = prometheus.NewCounter(prometheus.CounterOpts{Name: "test_sites_invalid_thresh"})
+	s.readConfig()
+
+	if s.config.alertThreshold != 2 {
+		t.Errorf("expected fallback alertThreshold 2, got %d", s.config.alertThreshold)
 	}
 }
