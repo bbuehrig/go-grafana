@@ -40,7 +40,8 @@ func RunPipeline(ctx context.Context, client *dagger.Client) error {
 		final := client.Container(dagger.ContainerOpts{Platform: dagger.Platform(p.platform)}).
 			From("gcr.io/distroless/base").
 			WithWorkdir("/app").
-			WithFile("/app/go-grafana", buildContainer.File("/app/go-grafana"))
+			WithFile("/app/go-grafana", buildContainer.File("/app/go-grafana")).
+			WithEntrypoint([]string{"./go-grafana"})
 
 		_, err = final.Export(ctx, imageTag)
 		if err != nil {
